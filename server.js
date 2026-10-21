@@ -108,7 +108,7 @@ async function streamUpstream(cfg, messages, emit, signal) {
       try {
         const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.key}` };
         if (cfg.provider === 'openrouter') { headers['HTTP-Referer'] = process.env.SITE_URL || 'http://localhost:3000'; headers['X-Title'] = 'KalaVerse'; }
-        const up = await fetch(`${cfg.base}/chat/completions`, { method: 'POST', headers, signal, body: JSON.stringify({ model, messages: variant, stream: true, max_tokens: 1500, temperature: 0.4, reasoning: { effort: 'low' } }) });
+        const up = await fetch(`${cfg.base}/chat/completions`, { method: 'POST', headers, signal, body: JSON.stringify({ model, messages: variant, stream: true, max_tokens: cfg.maxTokens || 1500, temperature: 0.4, ...(cfg.provider === 'openrouter' ? { reasoning: { effort: 'low' } } : {}) }) });
         if (!up.ok) { const why = (await up.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 220); lastErr = `${model}: HTTP ${up.status} ${why}`.trim(); console.warn('Upstream failed', lastErr); if (up.status === 400 && variant === messages) { retryFolded = true; } else break; }
         else {
           const dec = new TextDecoder(), filter = thinkFilter();
@@ -194,15 +194,35 @@ Art destinations KalaVerse knows: ${CATALOG}.${notes ? `\nVERIFIED NOTES:\n${not
 async function handleLens(body, emit, signal) {
   const img = String(body.image || '');
   if (!/^data:image\/(jpeg|png|webp);base64,/.test(img) || img.length > 1500000) return emit({ type: 'error', message: 'Please send a smaller JPG, PNG or WebP image.' });
-  const cfg = config();
-  if (cfg.provider === 'none' || !cfg.key) return emit({ type: 'error', code: 'no_key', message: 'No API key is configured on the server.' });
   const st = HERITAGE.states.find((s) => s.id === body.art) || HERITAGE.states[0];
-  const vis = { ...cfg, models: (process.env.OPENROUTER_VISION_MODEL || 'google/gemma-4-31b-it:free').split(',').map((x) => x.trim()).filter(Boolean) };
-  const prompt = `You are KalaLens, a kind mentor for learners of ${st.artForm} from ${st.name}. Look at the image. If it is not an artwork, say so in one sentence and stop.
-Otherwise give: 2 strengths, 3 specific improvements (traditional motifs, borders, colour palette, line work, filling empty space), and one short practice exercise. Be encouraging and concrete, at most 150 words, plain text with lines starting with "-", no headings, no emojis.
+  // Providers that can look at images, tried in order. Gemini first (free key from aistudio.google.com), then OpenRouter.
+  const e = process.env, cfg = config(), tries = [];
+  if (e.GEMINI_API_KEY) tries.push({ provider: 'gemini', maxTokens: 4000, key: e.GEMINI_API_KEY, base: e.GEMINI_OPENAI_URL || 'https://generativelanguage.googleapis.com/v1beta/openai', models: (e.GEMINI_VISION_MODEL || e.GEMINI_MODEL || 'gemini-3.5-flash-lite,gemini-3.1-flash-lite').split(',').map((x) => x.trim()).filter(Boolean) });
+  if (e.OPENROUTER_API_KEY) tries.push({ provider: 'openrouter', maxTokens: 4000, key: e.OPENROUTER_API_KEY, base: e.LLM_BASE_URL || 'https://openrouter.ai/api/v1', models: (e.OPENROUTER_VISION_MODEL || 'google/gemma-4-31b-it:free').split(',').map((x) => x.trim()).filter(Boolean) });
+  if (!tries.length) return emit({ type: 'error', code: 'no_key', message: 'No API key is configured on the server.' });
+  const prompt = `You are KalaLens, an honest and kind mentor for learners of ${st.artForm} from ${st.name}. Study the uploaded image carefully and base EVERYTHING on what you actually see in it: its subject, motifs, border, line work, colours, composition and how it compares with the traditional style.
+If the image is NOT an artwork, return {"overall":null,"summary":"<one short sentence saying so>","ratings":[],"colours":[],"strengths":[],"improvements":[],"practice":[]}.
+Otherwise return ONLY one JSON object, with no markdown and no text around it, in exactly this shape:
+{"overall":<integer 0-100, an honest overall score>,
+"summary":"2 or 3 sentences describing what you see in this specific piece and how it fits ${st.artForm}",
+"ratings":[{"name":"short aspect name, max 3 words","score":<integer 0-100>,"note":"one sentence about this aspect of this image"}],
+"colours":[{"name":"colour name","hex":"#rrggbb"}],
+"strengths":["2 things done well, specific to this image"],
+"improvements":["3 concrete improvements, specific to this image"],
+"practice":["2 exercises or things to study next, specific to ${st.artForm}"]}
+Rules: give exactly 5 ratings. Choose the 5 aspects that matter most for ${st.artForm} and this image (for example border work, motif accuracy, line quality, colour palette, filling of space, composition balance). Scores must be honest and different from each other, not all high. List the 4 or 5 dominant colours really visible, with approximate hex codes. Every sentence at most 25 words. No emojis. Keep the JSON keys in English; write every value (names, notes, sentences) in the language below.
 ${langRule(body.lang)}
 Verified notes about the art form:\n${contextFor(st).slice(0, 2500)}`;
-  await streamUpstream(vis, [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: img } }] }], emit, signal);
+  const msgs = [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: img } }] }];
+  let failed = null;
+  for (const t of tries) {
+    let got = false;
+    const hold = (ev) => { if (ev.type === 'error' && !ev.partial) { failed = ev; return; } if (ev.type === 'chunk') got = true; if (ev.type !== 'done') emit(ev); };   // hold back errors until every provider failed
+    await streamUpstream(t, msgs, hold, signal);
+    if (got || signal.aborted) return;
+    console.warn('KalaLens: ' + t.provider + ' failed, trying the next provider.', failed && failed.detail);
+  }
+  emit({ type: 'error', message: (failed && failed.message) || 'The AI service is busy or unavailable. Please try again in a moment.', detail: failed && failed.detail });
 }
 
 const hits2 = new Map();
@@ -220,7 +240,7 @@ function serveStatic(req, res) {
   if (!file.startsWith(PUBLIC + path.sep)) { res.writeHead(403); return res.end('Forbidden'); }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': path.extname(file) === '.html' ? 'no-cache' : 'public, max-age=300', ...SECURITY });
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': ['.html', '.js', '.css'].includes(path.extname(file)) ? 'no-cache' : 'public, max-age=300', ...SECURITY });
     res.end(data);
   });
 }
