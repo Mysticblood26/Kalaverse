@@ -1,0 +1,15 @@
+{
+  "name": "kalaverse-website",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KalaVerse website with a KalaSathi chatbot",
+  "scripts": {
+    "start": "node server.js",
+    "translate": "node scripts/build-translations.js",
+    "translate:web": "TRANSLATE_ENGINE=web node scripts/build-translations.js",
+    "translate:rebuild": "node scripts/build-translations.js --flush-only"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
