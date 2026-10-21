@@ -15,6 +15,32 @@ const H = JSON.parse(fs.readFileSync(path.join(PUB, 'data', 'heritage.json'), 'u
 let HI = {}; try { HI = JSON.parse(fs.readFileSync(path.join(PUB, 'data', 'heritage.hi.json'), 'utf8')); } catch { /* optional */ }
 const read = (f) => fs.readFileSync(path.join(PUB, f), 'utf8');
 const G = T.glossary(T.namesFrom(H));
+
+/* Brand names written in each language's own script (the machine translators keep them in Latin letters).
+   Applied when the language files are written, so it also fixes strings that are already in the cache.
+   Order of each list: KalaSathi, KalaLens, KalaTour, KalaYatri, KalaVerse. Edit a spelling here and re-run. */
+const BRANDS = ['KalaSathi', 'KalaLens', 'KalaTour', 'KalaYatri', 'KalaVerse'];
+const BRAND_NATIVE = {
+  hi: ['कलासाथी', 'कलालेंस', 'कलाटूर', 'कलायात्री', 'कलावर्स'],
+  mr: ['कलासाथी', 'कलालेन्स', 'कलाटूर', 'कलायात्री', 'कलावर्स'],
+  bn: ['কলাসাথী', 'কলালেন্স', 'কলাটুর', 'কলাযাত্রী', 'কলাভার্স'],
+  as: ['কলাসাথী', 'কলালেন্স', 'কলাটুৰ', 'কলাযাত্ৰী', 'কলাভাৰ্স'],
+  gu: ['કલાસાથી', 'કલાલેન્સ', 'કલાટૂર', 'કલાયાત્રી', 'કલાવર્સ'],
+  pa: ['ਕਲਾਸਾਥੀ', 'ਕਲਾਲੈਂਸ', 'ਕਲਾਟੂਰ', 'ਕਲਾਯਾਤਰੀ', 'ਕਲਾਵਰਸ'],
+  or: ['କଳାସାଥୀ', 'କଳାଲେନ୍ସ', 'କଳାଟୁର', 'କଳାଯାତ୍ରୀ', 'କଳାଭର୍ସ'],
+  ta: ['கலாசாத்தி', 'கலாலென்ஸ்', 'கலாடூர்', 'கலாயாத்ரி', 'கலாவெர்ஸ்'],
+  te: ['కళాసాథి', 'కళాలెన్స్', 'కళాటూర్', 'కళాయాత్రి', 'కళావర్స్'],
+  kn: ['ಕಲಾಸಾಥಿ', 'ಕಲಾಲೆನ್ಸ್', 'ಕಲಾಟೂರ್', 'ಕಲಾಯಾತ್ರಿ', 'ಕಲಾವರ್ಸ್'],
+  ml: ['കലാസാഥി', 'കലാലെൻസ്', 'കലാടൂർ', 'കലായാത്രി', 'കലാവേഴ്സ്']
+};
+const fixBrands = (lang, str) => {
+  const nat = BRAND_NATIVE[lang]; if (!nat || typeof str !== 'string') return str;
+  BRANDS.forEach((b, i) => {
+    str = str.replace(new RegExp('[^\\s|:,.()]+\\s*\\(\\s*' + b + '\\s*\\)', 'g'), nat[i]);   // "native (KalaSathi)" -> native only
+    str = str.replace(new RegExp(b, 'g'), nat[i]);                                           // plain Latin name -> native
+  });
+  return str;
+};
 const want = new Set();           // keys to translate (templates and names)
 const hand = {};                  // hand-written Hindi we already have: key -> translation
 const add = (s) => { s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); if (!T.LATIN.test(s)) return; const tp = T.template(s, G); if (T.mode(s, 'hi', tp) === 'names') tp.vals.filter((v) => v.name).forEach((v) => want.add(v.v)); else { want.add(tp.key); tp.vals.filter((v) => v.name).forEach((v) => want.add(v.v)); } };
@@ -47,7 +73,7 @@ H.states.forEach((s) => { add(Core.first(s.history, 1)); add(Core.first(s.histor
 ['js/app.js', 'js/features.js', 'js/yatri.js', 'js/chat.js'].forEach((f) => {
   (read(f).match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"/g) || []).forEach((q) => {
     const s = q.slice(1, -1).replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\n/g, ' ');
-    if (/^[A-Z][^<>{}=;]*[a-z]/.test(s) && s.length < 260 && !/^(Content-Type|Escape|Enter|http|data:|rgb|image)/.test(s) && !/[\\]/.test(s)) add(s);
+    if (/^[A-Z][^<>{}=;]*[a-z]/.test(s) && s.length < 260 && !/^(Content-Type|Escape|Enter|DOMContentLoaded|http|data:|rgb|image)/.test(s) && !/[\\]/.test(s)) add(s);
   });
   (read(f).match(/\[\s*'[a-z]+',\s*'[^']+'\s*\]/g) || []).forEach((m) => add(m.replace(/^.*',\s*'|'\s*\]$/g, '')));
 });
@@ -91,7 +117,7 @@ zones.forEach(add);
   const langs = args.filter((a) => !a.startsWith('--')).length ? args.filter((a) => !a.startsWith('--')) : Object.keys(LANGNAME);
   console.log(keys.length + ' strings to cover per language. Engine: ' + (ENGINE === 'indictrans' ? 'IndicTrans2 (AI4Bharat, runs on your computer)' : 'API: ' + providerNames().join(' -> ')));
   const flush = (lang) => {
-    const o = {}; keys.forEach((k) => { const v = cache[lang + '|' + k] || (lang === 'hi' && hand[k]); if (v) o[k] = v; });
+    const o = {}; keys.forEach((k) => { const v = cache[lang + '|' + k] || (lang === 'hi' && hand[k]); if (v) o[k] = BRANDS.includes(k) && BRAND_NATIVE[lang] ? BRAND_NATIVE[lang][BRANDS.indexOf(k)] : fixBrands(lang, v); });
     fs.writeFileSync(path.join(OUT, lang + '.json'), JSON.stringify(o)); fs.writeFileSync(CACHE, JSON.stringify(cache));
     return Object.keys(o).length;
   };
