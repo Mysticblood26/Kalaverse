@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#5a1420">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KalaVerse | Indian traditional art and crafts</title>
+<meta name="description" content="KalaVerse: learn Indian folk paintings and crafts state by state, ask KalaSathi, and plan a day with local artisans.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23a3402a'/%3E%3Ctext x='16' y='23' font-size='21' text-anchor='middle' fill='%23fff' font-family='Georgia,serif'%3EK%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600&family=Yatra+One&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/i18n.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header><div class="wrap"><a class="brand" href="#home">KalaVerse <span lang="hi">कलावर्स</span></a>
+<nav aria-label="Main"><a href="#home" data-v="home" data-i18n="nav.home">Home</a><a href="#explore" data-v="explore" data-i18n="nav.explore">Explore India</a><a href="#map" data-v="map" data-i18n="nav.map">Map</a><a href="#kalasathi" data-v="kalasathi" data-i18n="nav.kalasathi">KalaSathi</a><a href="#lens" data-v="lens" data-i18n="nav.lens">KalaLens</a><a href="#tours" data-v="tours" data-i18n="nav.tours">KalaTour</a><a href="#community" data-v="community" data-i18n="nav.community">Community</a><a href="#book" data-v="book">Book tickets</a><a href="#cart" data-v="cart" id="cartlink">Cart</a></nav><div class="ctl"><select id="langsel" aria-label="Language" data-notr><option value="en">English</option><option value="hi">हिन्दी</option><option value="ml">മലയാളം</option><option value="pa">ਪੰਜਾਬੀ</option><option value="as">অসমীয়া</option><option value="gu">ગુજરાતી</option><option value="kn">ಕನ್ನಡ</option><option value="or">ଓଡ଼ିଆ</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="bn">বাংলা</option><option value="mr">मराठी</option></select><button type="button" id="themebtn" class="themebtn" aria-label="Dark mode">☾</button></div></div></header>
+<main id="main" tabindex="-1">
+<section class="view" id="v-home"><div class="wrap"><svg class="mandala" viewBox="-100 -100 200 200" aria-hidden="true" focusable="false"><defs><path id="pt" d="M0-92C15-72 15-52 0-36C-15-52-15-72 0-92Z"/><path id="ps" d="M0-34C8-26 8-18 0-10C-8-18-8-26 0-34Z"/></defs><g fill="none" stroke="currentColor" stroke-width="1.3"><circle r="97"/><circle r="94" stroke-dasharray="2 4"/><circle r="36"/><circle r="9" fill="currentColor"/><use href="#pt" transform="rotate(0)"/><use href="#pt" transform="rotate(30)"/><use href="#pt" transform="rotate(60)"/><use href="#pt" transform="rotate(90)"/><use href="#pt" transform="rotate(120)"/><use href="#pt" transform="rotate(150)"/><use href="#pt" transform="rotate(180)"/><use href="#pt" transform="rotate(210)"/><use href="#pt" transform="rotate(240)"/><use href="#pt" transform="rotate(270)"/><use href="#pt" transform="rotate(300)"/><use href="#pt" transform="rotate(330)"/><use href="#ps" transform="rotate(15)"/><use href="#ps" transform="rotate(45)"/><use href="#ps" transform="rotate(75)"/><use href="#ps" transform="rotate(105)"/><use href="#ps" transform="rotate(135)"/><use href="#ps" transform="rotate(165)"/><use href="#ps" transform="rotate(195)"/><use href="#ps" transform="rotate(225)"/><use href="#ps" transform="rotate(255)"/><use href="#ps" transform="rotate(285)"/><use href="#ps" transform="rotate(315)"/><use href="#ps" transform="rotate(345)"/></g></svg>
+<h1 data-i18n="home.h1">Learn Indian traditional art, one state at a time.</h1>
+<p class="lede" data-i18n="home.lede">KalaVerse is a platform for learning folk paintings and crafts, asking an AI guide questions about them, and planning a day around the artisans who keep them alive.</p>
+<a class="btn" href="#explore" data-i18n="home.explore">Explore India</a><a class="btn alt" href="#kalasathi" data-i18n="home.ask">Ask KalaSathi</a>
+<svg class="strip" aria-hidden="true" focusable="false"><defs><pattern id="w" width="44" height="40" patternUnits="userSpaceOnUse"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><circle cx="22" cy="6" r="3.6" fill="currentColor"/><path d="M14 12h16l-8 10zM22 22l-8 10h16zM14 12l-6 6M30 12l6 6M17 32l-2 7M27 32l2 7"/></g></pattern></defs><rect width="100%" height="40" fill="url(#w)"/></svg>
+<h2 class="sec" data-i18n="home.start">Start with an art form</h2>
+<div class="feat" id="feat"></div>
+<div class="list">
+<div class="row"><h3><a href="#explore" data-i18n="nav.explore">Explore India</a></h3><p data-i18n="home.r1">Regional art forms with their history, cultural meaning, materials, motifs and a short tutorial for each.</p></div>
+<div class="row"><h3><a href="#kalasathi" data-i18n="nav.kalasathi">KalaSathi</a></h3><p data-i18n="home.r2">Ask about an art form, a technique or a material and get a short answer. Follow-up questions stay on the same art form.</p></div>
+<div class="row"><h3><a href="#tours" data-i18n="nav.tours">KalaTour</a></h3><p data-i18n="home.r3">One-day cultural itineraries built around artisan villages, workshops and local food.</p></div>
+<div class="row"><h3><a href="#lens" data-i18n="nav.lens">KalaLens</a></h3><p data-i18n="home.r4">Upload your artwork for colour, balance and detail feedback tied to the art form you are practising.</p></div>
+<div class="row"><h3><a href="#" data-yatri data-i18n="nav.yatri">KalaYatri</a></h3><p data-i18n="home.r5">Travel concierge for routes, accessibility and workshop booking requests.</p></div>
+<div class="row"><h3><a href="#community" data-i18n="nav.community">Community</a></h3><p data-i18n="home.r6">Artist showcase, marketplace and workshops.</p></div>
+</div></div></section>
+
+<section class="view" id="v-explore"><div class="wrap">
+<h2 data-i18n="explore.h">Explore India</h2>
+<p class="mute" id="exn"></p>
+<div class="split"><div><div class="filters"><input type="search" id="q" placeholder="Search art form or state" data-i18n-ph="explore.search"><select id="zone" aria-label="Filter by region"><option value="" data-i18n="explore.all">All regions</option></select></div><p class="mute small" id="count" aria-live="polite"></p><div class="items" id="items"></div></div><div class="detail" id="detail"></div></div>
+</div></section>
+
+<section class="view" id="v-kalasathi"><div class="wrap">
+<div class="chat" id="chatbox">
+<div class="chathead"><span class="avatar" aria-hidden="true">क</span><div class="who"><h2>KalaSathi</h2><p data-i18n="chat.sub">Your guide to Indian arts and crafts</p></div><button class="linkbtn ychat" type="button" id="ychat" aria-label="KalaYatri travel agent"><svg viewBox="-12 -12 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.6"><circle r="10"/><path d="M0-7L2.2 0 0 7-2.2 0z" fill="currentColor"/></g></svg><span data-i18n="nav.yatri">KalaYatri</span></button><button class="linkbtn" type="button" id="clear" data-i18n="chat.new">New chat</button></div>
+<div class="log" id="log" aria-live="polite"></div>
+<div class="chips" id="chips" aria-label="Suggested questions"></div>
+<form class="bar" id="form"><input type="text" id="msg" placeholder="Ask about an art form, materials, history or how to try it" data-i18n-ph="chat.ph" autocomplete="off" maxlength="500"><button class="btn" type="submit" id="send" data-i18n="chat.send">Send</button></form>
+<p class="status" id="status"></p></div>
+</div></section>
+
+<section class="view" id="v-tours"><div class="wrap">
+<h2 data-i18n="tours.h">KalaTour</h2>
+<p class="mute narrow" data-i18n="tours.sub">Build a personalised one-day cultural itinerary, or browse the curated trails below.</p>
+<form class="panel" id="tf"></form><div id="tout"></div><h3 class="sec" data-i18n="tours.curated">Curated trails</h3>
+<div id="tl" class="tours"></div>
+</div></section>
+<section class="view" id="v-map"><div class="wrap"><h2 data-i18n="map.h">Cultural map of India</h2><p class="mute narrow" data-i18n="map.sub">Click or tap any state or union territory (all 36) to discover its art form, crafts, tours and marketplace.</p>
+<div class="split mapsplit"><div class="mapbox"><label class="note" for="mapsel" data-i18n="map.pick">Choose a state or union territory</label><select id="mapsel"></select><svg id="mapsvg" viewBox="0 0 812 921" role="group" aria-label="Map of India. Select a state or union territory."></svg></div><div class="detail" id="mapd"></div></div></div></section>
+<section class="view" id="v-lens"><div class="wrap"><h2>KalaLens</h2><p class="mute narrow" data-i18n="lens.sub">Upload a photo of your artwork. The analysis runs in your browser and the image is never uploaded.</p>
+<div class="lens"><button type="button" class="frame" id="frame" aria-label="Upload your artwork"><span class="mat"><img id="fprev" alt="Your uploaded artwork" hidden><span class="ph" id="fph"><svg viewBox="-100 -100 200 200" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="2"><circle r="96"/><circle r="30"/><circle r="6" fill="currentColor"/><use href="#pt" transform="rotate(0)"/><use href="#pt" transform="rotate(45)"/><use href="#pt" transform="rotate(90)"/><use href="#pt" transform="rotate(135)"/><use href="#pt" transform="rotate(180)"/><use href="#pt" transform="rotate(225)"/><use href="#pt" transform="rotate(270)"/><use href="#pt" transform="rotate(315)"/></g></svg><b>Add your artwork</b><small>Click here or drop an image</small></span></span></button><div class="lside"><p class="note">KalaLens recognises the art form for you.</p><input type="file" id="lfile" accept="image/*" hidden><button type="button" class="linkbtn" id="lchange" hidden>Choose a different image</button><p class="note">JPG, PNG or WebP, up to 8 MB.</p></div></div><div id="ldet"></div><div id="lout"></div></div></section>
+<section class="view" id="v-community"><div class="wrap"><h2 data-i18n="comm.h">Community and Marketplace</h2><p class="mute narrow" data-i18n="comm.sub">Sample listings built from the KalaVerse dataset to show how the marketplace works. Payments and real seller accounts are not enabled on this site.</p>
+<div class="chips" id="ctabs"></div><div id="cbody"></div></div></section>
+<section class="view" id="v-cart"><div class="wrap" id="ct"></div></section>
+<section class="view" id="v-book"><div class="wrap" id="bk"></div></section>
+<noscript><div class="wrap"><p>KalaVerse needs JavaScript to show art forms and the KalaSathi chat.</p></div></noscript>
+</main>
+<footer><div class="wrap"></div></footer>
+<script src="js/core.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/yatri.js"></script>
+<script src="js/app.js"></script>
+<script src="js/features.js"></script>
+<script src="js/book.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/trutil.js"></script>
+<script src="js/translate.js"></script>
+<script src="js/strip.js"></script>
+</body>
+</html>
