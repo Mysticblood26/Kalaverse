@@ -22,7 +22,7 @@
       'explore.h': 'Explore India', 'explore.search': 'Search art form or state', 'explore.all': 'All regions',
       'map.h': 'Cultural map of India', 'map.sub': 'Click or tap any state or union territory (all 36) to discover its art form, crafts, tours and marketplace.', 'map.pick': 'Choose a state or union territory', 'map.fail': 'The map could not be loaded. Use the dropdown above.',
       'tours.h': 'KalaTour', 'tours.sub': 'Build a personalised one-day cultural itinerary, or browse the curated trails below.', 'tours.curated': 'Curated trails',
-      'lens.sub': 'Upload a photo of your artwork. A small copy is sent to an AI model, which gives it a score and writes feedback for the art form you are practising. The image is not stored on this site.',
+      'lens.sub': 'Upload a photo of your artwork. A small copy is sent to Google Gemini, which first recognises the art form and then gives a score and written feedback for it. The image is not stored on this site.',
       'yatri.sub': 'Travel concierge for cultural trips: routes, accessibility checks and workshop booking requests.',
       'comm.h': 'Community and Marketplace', 'comm.sub': 'Sample listings built from the KalaVerse dataset to show how the marketplace works. Payments and real seller accounts are not enabled on this site.',
       'ex.state': 'State', 'ex.capital': 'Capital', 'ex.region': 'Region', 'ex.ask': 'Ask KalaSathi about ', 'ex.history': 'History', 'ex.sig': 'Cultural significance', 'ex.good': 'Good to know', 'ex.mat': 'Traditional materials', 'ex.motifs': 'Key motifs', 'ex.other': 'Other crafts from ', 'ex.try': 'Try it: ', 'ex.need': 'You will need', 'ex.about': 'about',

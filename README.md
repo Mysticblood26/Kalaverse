@@ -73,7 +73,9 @@ instead of uploading `.env`. A static-only host (GitHub Pages, plain Netlify) ca
 ## Feature notes
 
 - **Language and theme**: header buttons switch English / Hindi and dark / light (saved in the browser). Menus, headings, labels and KalaSathi follow the language. Hindi art-form notes are read from `public/data/heritage.hi.json` (currently Bihar; other states show English until added). With an API key KalaSathi answers in the chosen language.
-- **KalaLens**: runs in the browser (colour, contrast, detail, balance). It is rule-based, not an AI vision model, and images are never uploaded.
+- **KalaLens**: with the list on *Auto-detect* (default) the picture is first sent to Google Gemini (native API, structured JSON output, temperature 0, art catalogue in the prompt) which names the art form and shows its confidence plus runner-ups. If it is not sure, the page asks you to confirm. Then the mentor feedback is written for that art form. Needs `GEMINI_API_KEY`. Optional `GEMINI_DETECT_MODEL` (comma list, tried in order; unknown models are skipped). Detection is very good on the 36 forms in the dataset but never 100%, hence the confirm buttons.
+- **Book tickets (demo)**: page `#book`. KalaYatri (chat plan, with a Travellers box) and KalaTour (day plan or curated trail, with a travellers box) both open it. Fake tickets and a FAKE payment portal that accepts only the demo card `4242 4242 4242 4242` (`4000 0000 0000 0002` shows a decline), UPI `demo@kalaverse` or the demo bank. Nothing is charged, card details are never stored, tickets are marked DEMO. Bookings stay in the browser (`kv_bookings`).
+- **Community pictures**: every sample post has an image in `public/img/community/` (named after the poster: `Anita.jfif`, `Rohan.jfif`, `Meera.jfif`, `Kabir.jfif`, `Lakshmi.jfif`, `Tenzin.jfif`, plus `placeholder.jfif`). Replace the files keeping the same names, or edit the `img` paths in `SAMPLES` in `public/js/features.js`. Visitors can attach a picture to their own post.
 - **KalaTour planner / KalaYatri**: built from `heritage.json`. No live timetables, and booking requests are saved locally only.
 - **Marketplace / Showcase**: sample listings from the dataset; posts and wishlist use localStorage. Real sellers, payments and shared posts need a backend.
 
@@ -134,3 +136,5 @@ If you add new text to the code, run `npm run translate` again. Anything not yet
 
 Hindi for Bihar in `heritage.hi.json` is hand-written and is kept as is.
 Changing language now reloads the page, so nothing is left half translated.
+
+- **Marketplace cart**: every listing has Add to cart and Buy now. The `Cart` link (header) opens `#cart`: change quantities, delivery details, the same fake payment portal as ticket booking, then a demo order page. Delivery is Rs 99, free above Rs 3,000 (sample). Marketplace pictures go in `public/img/market/` (one `.jfif` per state, named after its main art form exactly as shown on the card, with any `/` removed, e.g. `Madhubani Mithila Painting.jfif`; fallback `market-placeholder.jfif`).

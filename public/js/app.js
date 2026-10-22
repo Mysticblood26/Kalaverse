@@ -13,8 +13,8 @@
   // "Madhubani / Mithila Painting" -> "Madhubani". Used for the "Ask KalaSathi" button.
   const shortName = (s) => s.artForm.split(/ & | \/ | \(/)[0];
 
-  const VIEWS = ['home', 'explore', 'map', 'kalasathi', 'lens', 'tours', 'community'];
-  const TITLES = { home: '', explore: 'Explore India | ', kalasathi: 'KalaSathi | ', tours: 'KalaTour | ', map: 'Cultural map | ', lens: 'KalaLens | ', community: 'Community | ' };
+  const VIEWS = ['home', 'explore', 'map', 'kalasathi', 'lens', 'tours', 'community', 'book', 'cart'];
+  const TITLES = { home: '', explore: 'Explore India | ', kalasathi: 'KalaSathi | ', tours: 'KalaTour | ', map: 'Cultural map | ', lens: 'KalaLens | ', community: 'Community | ', book: 'Book tickets | ', cart: 'Cart | ' };
   let openArt = null, pendingArt = null;
   function route() {
     const parts = location.hash.slice(1).split('/'); let v = parts[0]; if (!VIEWS.includes(v)) v = 'home';
@@ -87,7 +87,7 @@
     if (pendingArt) openArt(pendingArt);
   }
 
-  function tours(list_) {
+  function tours(list_, allStates) {
     const box = $('tl'), bar = el('div', null, 'chips'), states = [...new Set(list_.map((t) => t.state))]; let cur = '';
     const draw = () => {
       bar.querySelectorAll('.chip').forEach((b) => b.classList.toggle('on', b.dataset.s === cur)); box.replaceChildren();
@@ -95,11 +95,16 @@
         const c = el('div', null, 'card');
         c.append(el('h3', t.title), el('p', t.state + '. ' + t.duration + '. ' + t.theme + '.', 'mute where'), list('ul', t.highlights));
         if (t.tips && t.tips.length) c.append(el('h4', T('tips')), list('ul', t.tips));
-        const row = el('div', null, 'askrow'), plan = el('button', 'Use in planner', 'btn'), ask = el('button', 'Ask KalaYatri', 'btn alt');
-        plan.type = ask.type = 'button';
+        const row = el('div', null, 'askrow'), plan = el('button', 'Use in planner', 'btn'), ask = el('button', 'Ask KalaYatri', 'btn alt'), book = el('button', 'Book tickets', 'btn');
+        plan.type = ask.type = book.type = 'button';
+        book.onclick = () => {   // each highlight becomes a ticket: workshops and visits are bookable, meals are not
+          const st = allStates.find((x) => x.name === t.state); if (!st || !window.KVbook) return;
+          const stops = t.highlights.filter((h) => !/lunch|cuisine|culinary|food/i.test(h)).map((h) => ({ kind: /workshop|hands-on|session|class|learn/i.test(h) ? 'workshop' : 'heritage', title: h }));
+          window.KVbook.start({ state: st.id, stops, planTitle: 'Curated trail: ' + t.title });
+        };
         plan.onclick = () => document.dispatchEvent(new CustomEvent('kv-plan', { detail: t.state }));
         ask.onclick = () => window.openYatri && window.openYatri('Plan a one day art trip in ' + t.state + ' based on: ' + t.title);
-        row.append(plan, ask); c.append(row); box.append(c);
+        row.append(book, plan, ask); c.append(row); box.append(c);
       });
     };
     [['', 'All trails'], ...states.map((x) => [x, x])].forEach(([v, l]) => { const b = el('button', l, 'chip'); b.type = 'button'; b.dataset.s = v; b.onclick = () => { cur = v; draw(); }; bar.append(b); });
@@ -107,7 +112,7 @@
   }
 
   const boot = () => Promise.all([fetch('data/heritage.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }), fetch('data/heritage.hi.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}))]).then(([data, hi]) => {
-    HI = hi || {}; home(data.states); explore(data.states); tours(data.tours); window.initChat(data.states); if (window.initFeatures) window.initFeatures(data);
+    HI = hi || {}; window.KVdata = data; home(data.states); explore(data.states); tours(data.tours, data.states); window.initChat(data.states); if (window.initFeatures) window.initFeatures(data); if (window.KVbook) window.KVbook.init(data); if (window.KVcart) window.KVcart.init(data);
   }).catch(() => {
     const m = 'The heritage data could not be loaded. Run the site with npm start.';
     $('detail').textContent = m; $('tl').textContent = m;

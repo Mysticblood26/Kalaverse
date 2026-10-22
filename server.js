@@ -18,7 +18,7 @@ loadEnv(path.join(__dirname, '.env'));
 
 const PUBLIC = path.join(__dirname, 'public');
 const HERITAGE = JSON.parse(fs.readFileSync(path.join(PUBLIC, 'data', 'heritage.json'), 'utf8'));
-const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.jfif': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif' };
 
 // Tried in order. Gemma 4 31B first (Google host, does not train on prompts, 140+ languages incl. Hindi),
 // then NVIDIA Nemotron 3 Super, then OpenRouter's own free router as the last safety net.
@@ -177,15 +177,16 @@ const langRule = (c) => (c === 'en' || !LANGNAME[c] ? 'Reply in simple English u
 async function handleYatri(body, emit, signal) {
   const message = String(body.message || '').trim().slice(0, 600);
   const history = (Array.isArray(body.history) ? body.history : []).slice(-10).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: String(m.content || '').slice(0, 1200) }));
-  const cfg = config();
+  const cfg = config(), trav = Math.max(1, Math.min(50, parseInt(body.travellers, 10) || 1));
   if (cfg.provider === 'none' || !cfg.key) return emit({ type: 'error', code: 'no_key', message: 'No API key is configured on the server.' });
   const text = (message + ' ' + history.map((h) => h.content).join(' ')).toLowerCase();
   const hit = HERITAGE.states.filter((s) => text.includes(s.name.toLowerCase())).slice(0, 2);
   const notes = hit.map((s) => { const t = HERITAGE.tours.find((x) => x.state === s.name); return contextFor(s).slice(0, 1400) + (t ? `\nOne-day trail: ${t.title}. ${t.highlights.join('; ')}. Tips: ${(t.tips || []).join('; ')}` : ''); }).join('\n\n');
   const sys = `You are KalaYatri, a friendly travel-planning agent for trips built around Indian traditional art, crafts and culture.
 ${langRule(body.lang)}
-If something essential is missing (starting city, number of days, budget, interests), ask ONE short question. Otherwise give a concise plan: day-wise lines with places, artisan workshops and local food, best season, and how to reach by train, flight or road in general terms. Mention accessibility only if asked.
-Never invent prices, timetables, phone numbers or booking confirmations. You cannot book anything: tell the user to check IRCTC, airlines and each venue. At most 170 words, plain text, use lines starting with "-" for lists, no emojis, no headings.
+Group size: ${trav} traveller${trav === 1 ? '' : 's'} (taken from the Travellers box in the chat). Plan for exactly this many people and do not ask how many are travelling.
+If something essential is missing (destination state, starting city, number of days, interests), ask ONE short question. Otherwise give a concise plan: day-wise lines with places, artisan workshops and local food, best season, and how to reach by train, flight or road in general terms. Mention accessibility only if asked.
+Never invent prices, timetables, phone numbers or booking confirmations. KalaVerse has a demo ticket page: when you give a plan, end with one short line saying the person can tap "Book tickets" under your message to book sample tickets for it. Those tickets are a demo, not real, so for real travel tell them to check the railway, airline and venue websites. At most 170 words, plain text, use lines starting with "-" for lists, no emojis, no headings.
 Art destinations KalaVerse knows: ${CATALOG}.${notes ? `\nVERIFIED NOTES:\n${notes}` : ''}`;
   await streamUpstream(cfg, [{ role: 'system', content: sys }, ...history, { role: 'user', content: message }], emit, signal);
 }
@@ -203,14 +204,16 @@ async function handleLens(body, emit, signal) {
   const prompt = `You are KalaLens, an honest and kind mentor for learners of ${st.artForm} from ${st.name}. Study the uploaded image carefully and base EVERYTHING on what you actually see in it: its subject, motifs, border, line work, colours, composition and how it compares with the traditional style.
 If the image is NOT an artwork, return {"overall":null,"summary":"<one short sentence saying so>","ratings":[],"colours":[],"strengths":[],"improvements":[],"practice":[]}.
 Otherwise return ONLY one JSON object, with no markdown and no text around it, in exactly this shape:
-{"overall":<integer 0-100, an honest overall score>,
-"summary":"2 or 3 sentences describing what you see in this specific piece and how it fits ${st.artForm}",
-"ratings":[{"name":"short aspect name, max 3 words","score":<integer 0-100>,"note":"one sentence about this aspect of this image"}],
+{"summary":"2 or 3 sentences describing what you see in this specific piece and how it fits ${st.artForm}",
+"ratings":[{"name":"aspect name","note":"one sentence naming a specific strength AND a specific flaw you can see in this aspect","score":<integer 0-100>}],
 "colours":[{"name":"colour name","hex":"#rrggbb"}],
 "strengths":["2 things done well, specific to this image"],
 "improvements":["3 concrete improvements, specific to this image"],
 "practice":["2 exercises or things to study next, specific to ${st.artForm}"]}
-Rules: give exactly 5 ratings. Choose the 5 aspects that matter most for ${st.artForm} and this image (for example border work, motif accuracy, line quality, colour palette, filling of space, composition balance). Scores must be honest and different from each other, not all high. List the 4 or 5 dominant colours really visible, with approximate hex codes. Every sentence at most 25 words. No emojis. Keep the JSON keys in English; write every value (names, notes, sentences) in the language below.
+Do NOT output an overall score; it is calculated from the ratings.
+Give exactly these 5 ratings, in this order, with exactly these names: "Line work", "Colour palette", "Motif authenticity", "Composition", "Detail and finish". Write the note FIRST (the evidence), then the score that the evidence deserves.
+Scoring scale, used strictly: 90-100 = master or exhibition quality; 75-89 = skilled, only small flaws; 60-74 = competent, clear flaws; 40-59 = beginner, many flaws; 20-39 = rough attempt; 0-19 = barely recognisable. Most learner work falls between 35 and 75. Use the whole range, never default to a comfortable middle number, and make the five scores differ according to the evidence (a strong aspect and a weak aspect should be at least 15 points apart when the image shows it). Judge only what is visible, and compare it with the real traditional style of ${st.artForm}.
+List the 4 or 5 dominant colours really visible, with approximate hex codes. Every sentence at most 25 words. No emojis. Keep the JSON keys in English; write every value (notes, sentences) in the language below, but keep the five aspect names exactly as written in English.
 ${langRule(body.lang)}
 Verified notes about the art form:\n${contextFor(st).slice(0, 2500)}`;
   const msgs = [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: img } }] }];
@@ -223,6 +226,74 @@ Verified notes about the art form:\n${contextFor(st).slice(0, 2500)}`;
     console.warn('KalaLens: ' + t.provider + ' failed, trying the next provider.', failed && failed.detail);
   }
   emit({ type: 'error', message: (failed && failed.message) || 'The AI service is busy or unavailable. Please try again in a moment.', detail: failed && failed.detail });
+}
+
+// ---- KalaLens step 1: identify WHICH traditional art form a picture is (Gemini, structured JSON output) ----
+// Uses Gemini's native API with a response schema, so the answer is always one of the known art ids (or "none").
+// temperature 0 makes the answer repeatable. The model must list what it sees BEFORE it chooses, which improves accuracy.
+const ART_IDS = HERITAGE.states.map((s) => s.id);
+const ART_GUIDE = HERITAGE.states.map((s) => `- ${s.id} = ${s.artForm} (${s.name}). Typical look: ${s.motifs.slice(0, 3).map((m) => m.replace(/\s*\(.*?\)\s*/g, '')).join(', ')}. Materials: ${s.materials.slice(0, 2).map((m) => m.replace(/\s*\(.*?\)\s*/g, '')).join(', ')}.`).join('\n');
+const DEAD_MODELS = new Set();   // model ids Google answered 404 for, so we stop asking
+function detectModels() {
+  const e = process.env;
+  return (e.GEMINI_DETECT_MODEL || ['gemini-3.5-flash', e.GEMINI_VISION_MODEL, e.GEMINI_MODEL, 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'].filter(Boolean).join(',')).split(',').map((x) => x.trim()).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i);
+}
+const DETECT_SCHEMA = {
+  type: 'OBJECT', propertyOrdering: ['is_traditional_artwork', 'visible_features', 'candidates', 'best_id', 'best_confidence', 'reason'],
+  required: ['is_traditional_artwork', 'visible_features', 'candidates', 'best_id', 'best_confidence', 'reason'],
+  properties: {
+    is_traditional_artwork: { type: 'BOOLEAN' },
+    visible_features: { type: 'STRING' },
+    candidates: { type: 'ARRAY', items: { type: 'OBJECT', propertyOrdering: ['id', 'confidence'], required: ['id', 'confidence'], properties: { id: { type: 'STRING', format: 'enum', enum: ART_IDS }, confidence: { type: 'NUMBER' } } } },
+    best_id: { type: 'STRING', format: 'enum', enum: [...ART_IDS, 'none'] },
+    best_confidence: { type: 'NUMBER' },
+    reason: { type: 'STRING' },
+  },
+};
+function detectPrompt() {
+  return `You are an expert curator of Indian traditional paintings, textiles and crafts. Identify which art form the attached picture belongs to.
+Choose ONLY from this list of ids:
+${ART_GUIDE}
+
+Method (follow it in order and write the result in the JSON fields):
+1. visible_features: describe in 2 to 4 short sentences what you actually SEE: the medium (paper, cloth, wall, metal, clay, fabric), line work (double lines, dots, stick figures, fine miniature lines, bold outlines), colours (natural earthy, gold leaf, red and white, black and white), figures, borders and composition. Do not guess from the file, only from what is visible.
+2. candidates: the 3 most likely ids with confidence from 0 to 1, best first. Confidences must reflect real doubt, so they must not all be high.
+3. best_id: the single best id. If the picture is not a traditional Indian art form or craft (a photo of a person, a landscape, a screenshot, Western or digital art, a cartoon), or if you cannot tell, use "none" and set is_traditional_artwork to false when it is not an artwork at all.
+4. reason: one sentence naming the strongest visual evidence for best_id, for example "Double-line borders and fish motifs are typical of Madhubani".
+Tell similar styles apart carefully: Madhubani (bihar) has double-line borders and filled flat colour; Warli (maharashtra) is white stick figures on a mud-coloured ground; Gond (madhya_pradesh) fills animals with dots and dashes; Pattachitra (odisha) has bold outlines, floral borders and mythological faces on cloth; Kalamkari (andhra_pradesh) is pen-drawn natural-dye cloth with a tree of life; Pichwai and Pahari/Kangra are fine miniatures; Thanjavur has raised gold-leaf gesso and gems; Mysore is gold gesso with muted colour; Kalighat has bold brush outlines and flat figures; Thangka is a Buddhist cloth scroll.
+Return only the JSON.`;
+}
+async function geminiDetect(img, signal) {
+  const e = process.env, key = e.GEMINI_API_KEY, base = (e.GEMINI_NATIVE_URL || 'https://generativelanguage.googleapis.com/v1beta').replace(/\/$/, '');
+  const m = img.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/s);
+  const body = { contents: [{ role: 'user', parts: [{ text: detectPrompt() }, { inline_data: { mime_type: m[1], data: m[2] } }] }], generationConfig: { temperature: 0, maxOutputTokens: 1500, responseMimeType: 'application/json', responseSchema: DETECT_SCHEMA } };
+  let lastErr = 'no model could be used';
+  for (const model of detectModels()) {
+    if (DEAD_MODELS.has(model)) continue;
+    try {
+      const r = await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent`, { method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
+      if (!r.ok) { const why = (await r.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200); lastErr = `${model}: HTTP ${r.status} ${why}`; console.warn('KalaLens detect failed', lastErr); if (r.status === 404) DEAD_MODELS.add(model); if (r.status === 401 || r.status === 403 || (r.status === 400 && /API key/i.test(why))) return { error: 'bad_key', detail: lastErr }; continue; }
+      const j = await r.json(), txt = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('');
+      const o = JSON.parse(txt.replace(/```(?:json)?/gi, '').trim());
+      return { model, o };
+    } catch (err) { if (signal.aborted) return { error: 'aborted' }; lastErr = `${model}: ${err.message}`; console.warn('KalaLens detect error', lastErr); }
+  }
+  return { error: 'unavailable', detail: lastErr };
+}
+async function handleDetect(body, signal) {
+  const img = String(body.image || '');
+  if (!/^data:image\/(jpeg|png|webp);base64,/.test(img) || img.length > 2500000) return { error: 'bad_image', message: 'Please send a smaller JPG, PNG or WebP image.' };
+  if (!process.env.GEMINI_API_KEY) return { error: 'no_key', message: 'Auto-detect needs GEMINI_API_KEY on the server.' };
+  const r = await geminiDetect(img, signal);
+  if (r.error) return { error: r.error, message: r.error === 'bad_key' ? 'The Gemini API key was rejected.' : 'The detection service is busy or unavailable. Please try again.', detail: r.detail };
+  const o = r.o || {}, name = (id) => { const s = HERITAGE.states.find((x) => x.id === id); return s ? { id: s.id, state: s.name, artForm: s.artForm } : null; };
+  const cands = (Array.isArray(o.candidates) ? o.candidates : []).filter((c) => c && ART_IDS.includes(c.id)).map((c) => ({ ...name(c.id), confidence: Math.max(0, Math.min(1, Number(c.confidence) || 0)) })).sort((a, b) => b.confidence - a.confidence).filter((c, i, a) => a.findIndex((d) => d.id === c.id) === i).slice(0, 3);
+  let best = ART_IDS.includes(o.best_id) ? o.best_id : null, conf = Math.max(0, Math.min(1, Number(o.best_confidence) || 0));
+  if (best && cands.length && cands[0].id !== best) { const c = cands.find((x) => x.id === best); conf = c ? Math.min(conf, c.confidence) : Math.min(conf, 0.5); }
+  const art = o.is_traditional_artwork !== false && best ? name(best) : null;
+  const margin = cands.length > 1 && cands[0].id === best ? cands[0].confidence - cands[1].confidence : 1;
+  // 'sure' only when the model is confident AND the runner-up is clearly behind. Otherwise the page asks the person to confirm.
+  return { ok: true, model: r.model, art, confidence: conf, sure: !!art && conf >= 0.75 && margin >= 0.2, candidates: cands, features: String(o.visible_features || '').slice(0, 600), reason: String(o.reason || '').slice(0, 300) };
 }
 
 const hits2 = new Map();
@@ -264,6 +335,14 @@ function createServer() {
         try { await handleChat(body, emit, ctl.signal); } catch (e) { console.error(e); emit({ type: 'error', message: 'Unexpected server error.' }); }
         return res.end();
       }
+      if (req.method === 'POST' && url.pathname === '/api/lens-detect') {
+        const ip = clientIp(req);
+        const json = (code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); };
+        if (limited2(ip + url.pathname, 10)) return json(429, { error: 'rate', message: 'Too many uploads in a short time. Please wait a minute.' });
+        let body; try { body = await readBody(req, 3000000); } catch { return json(400, { error: 'bad_image', message: 'Invalid request' }); }
+        const ctl = new AbortController(); res.on('close', () => ctl.abort());
+        try { return json(200, await handleDetect(body, ctl.signal)); } catch (e) { console.error(e); return json(500, { error: 'server', message: 'Unexpected server error.' }); }
+      }
       if (req.method === 'POST' && (url.pathname === '/api/yatri' || url.pathname === '/api/lens')) {
         const ip = clientIp(req), lens = url.pathname === '/api/lens';
         if (limited2(ip + url.pathname, lens ? 8 : 15)) { res.writeHead(429, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ error: 'Too many requests. Please wait a minute.' })); }
@@ -288,4 +367,4 @@ if (require.main === module) {
     console.log(c.key ? `Chat provider: ${c.provider}, models: ${c.models.join(', ')}` : 'No API key found in .env. KalaSathi will use offline heritage notes. See README.md.');
   });
 }
-module.exports = { createServer, config, thinkFilter, foldSystem };
+module.exports = { createServer, config, thinkFilter, foldSystem, handleDetect };

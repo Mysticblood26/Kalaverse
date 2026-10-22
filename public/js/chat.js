@@ -10,7 +10,10 @@
     const log = $('log'), input = $('msg'), send = $('send'), status = $('status');
     let history = [], busy = false, prior = null, ctl = null, hint = null;
 
-    const scroll = () => { log.scrollTop = log.scrollHeight; };
+    // Follow the answer as it is written, but stop following if the reader scrolls up to re-read something.
+    let stick = true;
+    log.addEventListener('scroll', () => { stick = log.scrollHeight - log.scrollTop - log.clientHeight < 80; }, { passive: true });
+    const scroll = (force) => { if (force === true) stick = true; if (stick) log.scrollTop = log.scrollHeight; };
     // Builds DOM from parsed blocks only. Model output is never inserted as HTML.
     function fill(target, text, caret) {
       target.replaceChildren();
@@ -25,7 +28,7 @@
     function add(role, text) {
       const me = role === 'me', m = el('div', null, 'msg ' + (me ? 'me' : 'ai'));
       m.append(el('b', me ? T('chat.you') : T('chat.name')));
-      const t = el('div', me ? text : null, me ? 't' : 't rich'); m.append(t); log.append(m); scroll(); return t;
+      const t = el('div', me ? text : null, me ? 't' : 't rich'); m.append(t); log.append(m); scroll(me); return t;
     }
     function clearHint() { if (hint) { hint.remove(); hint = null; } }
     function showHint() {
